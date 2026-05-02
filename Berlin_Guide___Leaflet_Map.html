@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1c1c1e;color:#fff;overflow:hidden;position:fixed;width:100%}
+#map{position:fixed;inset:0;z-index:0}
+
+#top-bar{position:fixed;top:0;left:0;right:0;z-index:400;padding:12px 12px 0;display:flex;gap:8px;align-items:center;background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent);pointer-events:none}
+#top-bar>*{pointer-events:all}
+#sbr{flex:1;display:flex;align-items:center;background:rgba(22,22,26,.95);border:.5px solid rgba(255,255,255,.18);border-radius:22px;overflow:hidden;height:46px}
+#si{flex:1;background:transparent;border:none;outline:none;font-family:inherit;font-size:15px;color:#fff;padding:0 0 0 14px;height:100%}
+#si::placeholder{color:rgba(255,255,255,.4)}
+#sc-btn{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;padding:0 14px;font-size:20px;height:100%;display:none;align-items:center}
+#sc-btn.on{display:flex}
+#sres{position:fixed;top:70px;left:12px;right:12px;z-index:500;background:rgba(22,22,26,.97);border:.5px solid rgba(255,255,255,.12);border-radius:16px;display:none;overflow:hidden;max-height:50vh;overflow-y:auto}
+#sres.on{display:block}
+.sri{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:.5px solid rgba(255,255,255,.06);min-height:56px}
+.sri:active{background:rgba(255,255,255,.08)}
+.sri-pin{width:34px;height:34px;border-radius:50%;background:rgba(26,115,232,.2);border:1px solid rgba(26,115,232,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.top-icon-btn{width:46px;height:46px;border-radius:50%;background:rgba(22,22,26,.95);border:.5px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.top-icon-btn.active{background:rgba(255,255,255,.15)}
+#gps-btn{position:fixed;bottom:110px;right:16px;z-index:500;width:52px;height:52px;border-radius:50%;background:#fff;border:none;box-shadow:0 4px 16px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;cursor:pointer}
+#gps-btn.active{background:#1a73e8}
+#gps-btn.active svg{stroke:#fff}
+#gps-toast{position:fixed;bottom:175px;left:50%;transform:translateX(-50%);z-index:600;background:rgba(22,22,26,.95);border:.5px solid rgba(255,255,255,.15);border-radius:20px;padding:10px 18px;font-size:13px;color:#fff;white-space:nowrap;display:none;align-items:center;gap:8px}
+#gps-toast.on{display:flex}
+#bottom-bar{position:fixed;bottom:0;left:0;right:0;z-index:300;padding:0 12px 28px;background:linear-gradient(to top,rgba(0,0,0,.6),transparent);pointer-events:none;display:flex;flex-direction:column;gap:10px}
+#bottom-bar>*{pointer-events:all}
+.action-row{display:flex;gap:10px}
+.action-btn{flex:1;height:52px;border-radius:16px;border:none;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.btn-dark{background:rgba(22,22,26,.92);color:rgba(255,255,255,.85);border:.5px solid rgba(255,255,255,.15)}
+.btn-purple{background:#bf5af2;color:#fff}
+.popover{position:fixed;z-index:700;background:rgba(22,22,26,.97);border:.5px solid rgba(255,255,255,.14);border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:none;width:230px}
+.popover.on{display:block}
+#stg-pop{top:70px;right:12px}
+#lang-pop{top:70px;right:66px}
+.pop-hd{padding:12px 14px 8px;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.7px;text-transform:uppercase;border-bottom:.5px solid rgba(255,255,255,.07)}
+.sp-rw{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:.5px solid rgba(255,255,255,.06)}
+.sp-rw:last-child{border-bottom:none}
+.sw{width:44px;height:26px;border-radius:13px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.sw-t{position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+.lang-item{display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;border-bottom:.5px solid rgba(255,255,255,.06);min-height:52px}
+.lang-item:last-child{border-bottom:none}
+.lang-item.active{background:rgba(26,115,232,.1)}
+.lang-check{margin-left:auto;color:#1a73e8;display:none}
+.lang-item.active .lang-check{display:block}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:600;background:#1c1c1e;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.7);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+#sheet.peek{transform:translateY(calc(100% - 90px))}
+#sheet.half{transform:translateY(25%)}
+#sheet.full{transform:translateY(0)}
+.sheet-handle-wrap{padding:10px 0 4px;cursor:grab;touch-action:none}
+.sheet-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto}
+.sheet-mini{padding:0 18px 12px;display:flex;align-items:center;justify-content:space-between;touch-action:none}
+.sheet-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.sheet-name{font-size:17px;font-weight:600}
+.sheet-meta{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.sheet-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sheet-body{overflow-y:auto;overscroll-behavior:contain;padding:0 18px 80px;max-height:calc(100vh - 100px);touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.stabs{display:flex;background:rgba(255,255,255,.07);border-radius:12px;padding:3px;gap:2px;margin-bottom:16px}
+.stb{flex:1;padding:9px 4px;font-size:13px;border:none;border-radius:9px;cursor:pointer;background:transparent;color:rgba(255,255,255,.45);font-family:inherit;min-height:44px}
+.stb.on{font-weight:600;background:rgba(255,255,255,.14);color:#fff}
+.stp{display:none}.stp.on{display:block}
+.fi{display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.06);border-radius:11px;padding:11px 13px;margin-bottom:8px}
+.fd{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.dtxt{font-size:14px;line-height:1.82;color:rgba(255,255,255,.75);white-space:pre-line}
+.gtxt{font-size:14px;line-height:1.9;color:rgba(255,255,255,.68);font-style:italic;white-space:pre-line;margin-bottom:16px}
+.spkb{width:100%;padding:14px;border-radius:14px;border:none;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;font-family:inherit;min-height:52px}
+.apw{display:none;padding:0 0 14px}
+.apw.on{display:block}
+.aph{display:flex;justify-content:space-between;margin-bottom:6px}
+.apl{font-size:11px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:6px}
+.apd{width:6px;height:6px;border-radius:50%;background:#1a73e8;animation:blink 1.2s ease infinite}
+.aptr{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.apf{height:100%;border-radius:2px;background:linear-gradient(90deg,#1a73e8,#34c759);width:0%;transition:width .5s linear}
+#dist-strip{background:rgba(26,115,232,.12);border:.5px solid rgba(26,115,232,.3);border-radius:12px;padding:10px 14px;display:none;align-items:center;gap:10px;margin-bottom:14px}
+#dist-strip.on{display:flex}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(191,90,242,.15);border:1px solid rgba(191,90,242,.3);border-radius:18px;padding:6px 12px;margin:3px}
+.mw{display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative}
+.mp{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.mlb{background:rgba(18,18,20,.95);color:#fff;font-size:9px;font-weight:600;padding:3px 8px;border-radius:8px;margin-top:3px;white-space:nowrap;border:.5px solid rgba(255,255,255,.15);pointer-events:none}
+.mp.ta{border-color:#bf5af2}
+.tn{position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:#bf5af2;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #1c1c1e;z-index:10}
+.fp{width:40px;height:40px;border-radius:50%;background:#ff6b35;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:relative}
+.dest-dot{width:20px;height:20px;border-radius:50%;background:#1a73e8;border:3px solid #fff;position:relative;z-index:2}
+.dest-pulse{width:40px;height:40px;border-radius:50%;background:rgba(26,115,232,.2);position:absolute;top:-10px;left:-10px;animation:pulse 1.8s ease-out infinite}
+#poi-ldr{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(22,22,26,.95);border:.5px solid rgba(255,255,255,.12);border-radius:20px;padding:8px 16px;font-size:12px;color:rgba(255,255,255,.7);display:none;align-items:center;gap:8px;white-space:nowrap}
+#poi-ldr.on{display:flex}
+.spin{width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#1a73e8;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+
+/* ── NAV BAR (Google Maps style) ── */
+#nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:550;background:#1c1c1e;border-radius:20px 20px 0 0;box-shadow:0 -4px 30px rgba(0,0,0,.6);padding:0 16px 28px;display:none;flex-direction:column;gap:0}
+#nav-bar.on{display:flex}
+#nav-bar .nav-handle{width:40px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:10px auto 8px}
+#nav-bar .nav-header{display:flex;align-items:center;gap:14px;padding:4px 0 12px}
+#nav-bar .nav-eta{font-size:28px;font-weight:700;color:#34c759;line-height:1}
+#nav-bar .nav-eta-unit{font-size:14px;color:#34c759;font-weight:600}
+#nav-bar .nav-detail{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.5)}
+#nav-bar .nav-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.3)}
+#nav-bar .nav-steps{max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.nav-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-top:.5px solid rgba(255,255,255,.06)}
+.nav-step-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:rgba(255,255,255,.08)}
+.nav-step-icon.active{background:rgba(26,115,232,.2);color:#4da6ff}
+.nav-step-text{font-size:14px;color:rgba(255,255,255,.75);line-height:1.5}
+.nav-step-dist{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+#nav-bar .nav-actions{display:flex;gap:10px;margin-top:12px}
+.nav-end-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="top-bar">
+  <div id="sbr"><input id="si" type="text" autocomplete="off" oninput="onSI()" onkeydown="onSK(event)"/><button id="sc-btn" onclick="clearSrch()">x</button></div>
+  <div class="top-icon-btn" id="stg-btn" onclick="toggleStg()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+  <div class="top-icon-btn" id="lang-btn" onclick="toggleLang()"><span id="lang-flag-span" style="font-size:20px">DE</span></div>
+</div>
+<div id="sres"></div>
+<div id="stg-pop" class="popover">
+  <div class="pop-hd" id="stg-hd">Einstellungen</div>
+  <div class="sp-rw"><div><div id="sw-r-lbl" style="font-size:14px;font-weight:500">Nur Top-Rated</div><div id="sw-r-sub" style="font-size:11px;color:rgba(255,255,255,.38)">Bewertung ueber 3.5</div></div><div class="sw" id="sw-r" onclick="toggleRating()" style="background:#34c759"><div class="sw-t" id="sw-rt" style="left:22px"></div></div></div>
+  <div class="sp-rw"><div><div id="sw-f-lbl" style="font-size:14px;font-weight:500">Food-Spots</div><div id="sw-f-sub" style="font-size:11px;color:rgba(255,255,255,.38)">Restaurants anzeigen</div></div><div class="sw" id="sw-f" onclick="toggleFood()" style="background:rgba(255,255,255,.15)"><div class="sw-t" id="sw-ft" style="left:3px"></div></div></div>
+</div>
+<div id="lang-pop" class="popover">
+  <div class="pop-hd">Sprache</div>
+  <div id="lang-list"></div>
+</div>
+<button id="gps-btn" onclick="toggleGPS()">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/><circle cx="12" cy="12" r="7" stroke-dasharray="3 2"/></svg>
+</button>
+<div id="gps-toast"><span id="gps-toast-msg"></span></div>
+<div id="bottom-bar">
+  <div class="action-row">
+    <button class="action-btn btn-dark" onclick="openRouteSheet()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span id="bar-routes-lbl">Routen</span></button>
+    <button class="action-btn btn-purple" onclick="startTour()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg><span id="bar-tour-lbl">Eigene Tour</span></button>
+  </div>
+</div>
+<div id="poi-ldr"><div class="spin"></div><span id="ldr-txt">Laden</span></div>
+<div id="nav-bar">
+  <div class="nav-handle"></div>
+  <div class="nav-header">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:6px"><span class="nav-eta" id="nav-eta">--</span><span class="nav-eta-unit">Min.</span></div>
+      <div class="nav-detail"><span id="nav-dist">--</span><span class="nav-dot"></span><span id="nav-arrive">--</span></div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:4px" id="nav-live-dot">
+      <div style="width:8px;height:8px;border-radius:50%;background:#34c759;animation:blink 1.5s infinite"></div>
+      <span style="font-size:11px;color:#34c759;font-weight:600">Live</span>
+    </div>
+  </div>
+  <div class="nav-steps" id="nav-steps"></div>
+  <div class="nav-actions">
+    <button class="nav-end-btn" onclick="showRouteOverview()" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Übersicht</button>
+    <button class="nav-end-btn" onclick="endNavigation()" style="background:#ff453a;color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Beenden</button>
+  </div>
+</div>
+<div id="sheet">
+  <div class="sheet-handle-wrap" id="sheet-handle"><div class="sheet-handle"></div></div>
+  <div class="sheet-mini">
+    <div style="display:flex;align-items:center;gap:12px"><div class="sheet-icon" id="sh-icon"></div><div><div class="sheet-name" id="sh-name"></div><div class="sheet-meta" id="sh-meta"></div></div></div>
+    <button class="sheet-close" onclick="closeSheet()">x</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<script>
+// ── TRANSLATIONS (compact) ────────────────────────────────
+var T = {
+  de:{sp:'Wohin?',rt:'Routen',ot:'Eigene Tour',tf:'Fakten',td:'Details',ts:'Geschichte',rs:'Vorlesen',ss:'Stoppen',rd:'Wird vorgelesen',re:'Leicht',rm:'Mittel',red:'Unter den Linden',rmd:'Tiergarten & Reichstag',rl:'Laenge',rw:'Gehzeit',rsl:'Steigung',rf:'Food',nr:'Kein Ort.',ld:'Laden',fw:'Fussweg',fl:'Flach',s1:'1%',undo:'Rueckgaengig',fin:'Abschliessen',newt:'Neue Tour',lbl_stops:'Stopps',lbl_dist:'Strecke',lbl_walk:'Gehzeit',sum:'Deine Tour',nosp:'Keine Stopps'},
+  en:{sp:'Where to?',rt:'Routes',ot:'My Tour',tf:'Facts',td:'Details',ts:'Story',rs:'Read aloud',ss:'Stop',rd:'Reading',re:'Easy',rm:'Medium',red:'Along Unter den Linden',rmd:'Tiergarten & Reichstag',rl:'Length',rw:'Walk',rsl:'Incline',rf:'Food',nr:'No place found.',ld:'Loading',fw:'on foot',fl:'Flat',s1:'1%',undo:'Undo',fin:'Finish',newt:'New Tour',lbl_stops:'Stops',lbl_dist:'Distance',lbl_walk:'Walk time',sum:'Your Tour',nosp:'No stops'},
+  fr:{sp:'Ou aller?',rt:'Itineraires',ot:'Mon Parcours',tf:'Faits',td:'Details',ts:'Histoire',rs:'Lire',ss:'Arreter',rd:'Lecture',re:'Facile',rm:'Moyen',red:'Unter den Linden',rmd:'Tiergarten & Reichstag',rl:'Distance',rw:'Marche',rsl:'Pente',rf:'Food',nr:'Aucun lieu.',ld:'Chargement',fw:'a pied',fl:'Plat',s1:'1%',undo:'Annuler',fin:'Terminer',newt:'Nouveau',lbl_stops:'Arrets',lbl_dist:'Distance',lbl_walk:'Duree',sum:'Votre Parcours',nosp:'Pas encore'},
+  es:{sp:'A donde?',rt:'Rutas',ot:'Mi Ruta',tf:'Datos',td:'Detalles',ts:'Historia',rs:'Leer',ss:'Detener',rd:'Leyendo',re:'Facil',rm:'Medio',red:'Por Unter den Linden',rmd:'Tiergarten y Reichstag',rl:'Distancia',rw:'A pie',rsl:'Pendiente',rf:'Comida',nr:'Sin resultados.',ld:'Cargando',fw:'a pie',fl:'Llano',s1:'1%',undo:'Deshacer',fin:'Finalizar',newt:'Nueva',lbl_stops:'Paradas',lbl_dist:'Distancia',lbl_walk:'Tiempo',sum:'Tu Ruta',nosp:'Sin paradas'}
+};
+var LANGS=[{code:'de',flag:'DE',name:'Deutsch',sl:'de-DE',rate:.9,pitch:1},{code:'en',flag:'EN',name:'English',sl:'en-GB',rate:.92,pitch:1},{code:'fr',flag:'FR',name:'Francais',sl:'fr-FR',rate:.88,pitch:1.05},{code:'es',flag:'ES',name:'Espanol',sl:'es-ES',rate:.9,pitch:1}];
+var navLang=(navigator.language||'de').substring(0,2).toLowerCase();
+var curLang=['de','en','fr','es'].indexOf(navLang)>=0?navLang:'de';
+function t(k){return(T[curLang]&&T[curLang][k])||T.de[k]||k;}
+function lc(){for(var i=0;i<LANGS.length;i++)if(LANGS[i].code===curLang)return LANGS[i];return LANGS[0];}
+
+// ── PLACE DATA ────────────────────────────────────────────
+var PL={};
+(function(){
+  var pl=[
+    ['brandenburger','#1a73e8','Brandenburger Tor',52.5163,13.3777,'🏛',
+      {de:'Historisches Monument',en:'Historic Monument',fr:'Monument',es:'Monumento'},
+      ['Erbaut 1788-1791','Hoehe 26 m','Napoleon entfuehrte die Quadriga 1806','Symbol der Einheit seit 1989'],
+      {de:'Das Brandenburger Tor steht am Ende von Jahrhunderten. Napoleon marschierte 1806 hindurch. Fuer fast dreissig Jahre war es Symbol einer geteilten Welt.\n\nAm 22. Dezember 1989 schritt Bundeskanzler Kohl hindurch - Zehntausende jubelten auf beiden Seiten.',
+       en:'The Brandenburg Gate stands at the end of centuries. Napoleon marched through in 1806. For thirty years the world\'s most prominent symbol of division.\n\nOn December 22 1989 Chancellor Kohl walked through - tens of thousands cheered on both sides.',
+       fr:'La Porte de Brandebourg se dresse au bout de siecles. Napoleon y marcha en 1806. Trente ans, symbole de la division.\n\nLe 22 decembre 1989, le Chancelier Kohl la traversa.',
+       es:'La Puerta se alza al final de siglos. Napoleon marcho en 1806. Treinta anos, simbolo de division.\n\nEl 22 de diciembre de 1989, el Canciller Kohl la cruzo.'},
+      {de:'9. November 1989. Die Grenzen sind offen.\n\nTausende stroemen zum Brandenburger Tor. Die Grenzsoldaten wissen nicht was sie tun sollen.\n\nMenschen tanzen auf der Mauer. Fremde liegen sich weinend in den Armen.\n\nDenn Mauern fallen immer. Frueher oder spaeter. Immer.',
+       en:'November 9 1989. The borders are open.\n\nThousands stream to the Gate. The border guards do not know what to do.\n\nPeople dance on the wall. Strangers embrace and weep.\n\nBecause walls always fall. Sooner or later. Always.',
+       fr:'9 novembre 1989. Les frontieres sont ouvertes.\n\nDes milliers arrivent. Les gardes ne savent pas quoi faire.\n\nDes gens dansent sur le mur. Des inconnus pleurent.\n\nCar les murs tombent toujours.',
+       es:'9 de noviembre de 1989. Las fronteras estan abiertas.\n\nMiles llegan. Los guardias no saben que hacer.\n\nLa gente baila. Extrainos se abrazan.\n\nLos muros siempre caen.'}],
+    ['dom','#e8622a','Berliner Dom',52.5192,13.4009,'⛪',
+      {de:'Kirche und Museum',en:'Church and Museum',fr:'Eglise',es:'Catedral'},
+      ['Fertiggestellt 1905','Kuppehoehe 98 m','270 Stufen zur Aussicht','Hohenzollerngruft'],
+      {de:'Kaiser Wilhelm II wollte keine Kirche - er wollte eine Aussage machen. Die maechtige Kuppel, alles darauf ausgelegt zu ueberwaeltigen.\n\nWer die 270 Stufen erklimmt wird mit einem Panorama belohnt: Museumsinsel, Fernsehturm, die Spree wie ein silbernes Band.',
+       en:'Kaiser Wilhelm II did not merely want a church - he wanted to make a statement. The mighty dome, everything designed to overwhelm.\n\nClimbing 270 steps rewards you with a panorama: Museum Island, the TV Tower, the Spree like a silver ribbon.',
+       fr:'Guillaume II ne voulait pas juste une eglise. La puissante coupole pour impressionner.\n\nGraver les 270 marches: panorama sur Berlin.',
+       es:'Guillermo II no queria solo una iglesia. La cupula para impresionar.\n\nSubir 270 escalones: panorama sobre Berlin.'},
+      {de:'1944. Berlin brennt. Eine Brandbombe trifft die Kuppel.\n\nJahrzehntelang Ruine. 1975 beginnt die Restaurierung - Ost und West arbeiten Seite an Seite.\n\n1993 oeffnet er wieder.',
+       en:'1944. Berlin burns. A bomb strikes the dome.\n\nDecades as a ruin. In 1975 restoration begins - East and West work together.\n\n1993 it reopens.',
+       fr:'1944. Berlin brule. Une bombe frappe la coupole.\n\nDes decennies en ruine. En 1975 la restauration commence.\n\n1993 elle rouvre.',
+       es:'1944. Berlin arde. Una bomba golpea la cupula.\n\nDecadas en ruinas. En 1975 comienza la restauracion.\n\n1993 reabre.'}],
+    ['fernsehturm','#34c759','Fernsehturm',52.5208,13.4094,'📡',
+      {de:'Aussichtspunkt',en:'Viewpoint',fr:'Belvedere',es:'Mirador'},
+      ['368 m - hoechstes Bauwerk Deutschlands','Erbaut 1965-1969','Drehrestaurant alle 30 Min.'],
+      {de:'Den Fernsehturm sieht man aus jedem Winkel Berlins. Die SED baute ihn als Beweis ihrer Ueberlegenheit.\n\nDoch die Sonne erzeugte ein Kreuz aus Reflexen. Westberliner nannten es den Racheengel des Papstes. Das Kreuz blieb.',
+       en:'You can see the TV Tower from every corner. East Germany built it as proof of superiority.\n\nBut sunlight produced a cross of reflections. West Berliners called it the Pope\'s revenge. The cross remained.',
+       fr:'On aperçoit la Tour depuis chaque coin. La RDA la construite comme preuve.\n\nMais la sphère produisait une croix. La vengeance du Pape. La croix reste.',
+       es:'Se ve la Torre desde cualquier rincon. La RDA la construyo como prueba.\n\nPero la esfera producia una cruz. La venganza del Papa. La cruz permanecio.'},
+      {de:'Ulbricht wollte einen Turm der den Westen ueberragt. 1969 fertig - und die Kugel wirft ein Kreuz.\n\nDie DDR rasend. Neue Farbe. Das Kreuz bleibt.\n\nHeute lachen Berliner gemeinsam darueber.',
+       en:'Ulbricht wanted a tower to overshadow the West. Done 1969 - the sphere casts a cross.\n\nEast Germany furious. New paint. The cross remains.\n\nToday Berliners laugh about it together.',
+       fr:'Ulbricht voulait eclipser l\'Ouest. 1969 fini - la sphere projette une croix.\n\nFureur. Peinture. La croix reste.\n\nAujourd\'hui ils en rient.',
+       es:'Ulbricht queria eclipsar al Oeste. 1969 terminado - la esfera proyecta una cruz.\n\nFuria. Pintura. La cruz permanece.\n\nHoy los berlineses rien juntos.'}],
+    ['reichstag','#af52de','Reichstagsgebaeude',52.5186,13.3762,'🏛',
+      {de:'Politik und Geschichte',en:'Politics and History',fr:'Politique',es:'Politica'},
+      ['Erbaut 1884-1894','Brand 1933','Sowjetfahne 1945','Glaskuppel Foster 1999'],
+      {de:'Kein Gebaeude hat mehr Geschichte. 1918 die Republik. 1933 die Demokratie verbrannt. 1945 die Siegesflagge.\n\nFosters Glaskuppel: Besucher sehen direkt in den Plenarsaal. Russische Inschriften von 1945 blieben in den Waenden.',
+       en:'No building has absorbed more history. Republic 1918. Democracy burned 1933. Victory flag 1945.\n\nFoster\'s dome: visitors look into the plenary chamber. Russian inscriptions from 1945 remain in the walls.',
+       fr:'Aucun batiment n\'a absorbe plus d\'histoire. Republique 1918. Democratie brulee 1933. Drapeau 1945.\n\nLa coupole de Foster. Les inscriptions russes de 1945.',
+       es:'Ningun edificio ha absorbido mas historia. Republica 1918. Democracia quemada 1933. Bandera 1945.\n\nLa cupula de Foster. Inscripciones rusas de 1945.'},
+      {de:'27. Februar 1933. Der Reichstag brennt. Goering und Hitler eilen dorthin - auffaellig gefasst.\n\nWer den Brand legte - die Akten schweigen.\n\n30. April 1945 pflanzten Sowjets die rote Fahne.',
+       en:'February 27 1933. The Reichstag burns. Goering and Hitler arrive - strangely calm.\n\nWho set the fire - the files are silent.\n\nApril 30 1945 Soviets planted the red flag.',
+       fr:'27 fevrier 1933. Le Reichstag brule. Ils arrivent - etrangement calmes.\n\nQui a mis le feu? Les archives se taisent.\n\n30 avril 1945 le drapeau rouge.',
+       es:'27 de febrero de 1933. El Reichstag arde. Llegan - extraniamente tranquilos.\n\nQuien inicio el fuego? Los archivos callan.\n\n30 de abril de 1945 la bandera roja.'}]
+  ];
+  for(var i=0;i<pl.length;i++){
+    var p=pl[i];
+    PL[p[0]]={id:p[0],color:p[1],name:p[2],lat:p[3],lng:p[4],e:p[5],cat:p[6],facts:p[7],details:p[8],geschichte:p[9]};
+  }
+})();
+
+var MOCK_DB=[
+  {id:'ce',name:'Cafe Einstein',lat:52.5155,lng:13.3760,tag:'Kaffeehaus',emoji:'☕',tip:'Legendaeres Wiener Kaffeehaus.',stars:4.6},
+  {id:'cw',name:'Curry am Tor',lat:52.5168,lng:13.3790,tag:'Imbiss',emoji:'🌭',tip:'Currywurst am Pariser Platz.',stars:4.4},
+  {id:'bb',name:'Brot und Butter',lat:52.5172,lng:13.3880,tag:'Baeckerei',emoji:'🥐',tip:'Sauerteig und bester Flat White.',stars:4.4},
+  {id:'ne',name:'Nante-Eck',lat:52.5162,lng:13.3910,tag:'Berliner Original',emoji:'🍺',tip:'Kneipe seit 1897.',stars:4.7},
+  {id:'cd',name:'Cafe am Dom',lat:52.5188,lng:13.4012,tag:'Am Dom',emoji:'☕',tip:'Kuchen mit Blick auf die Spree.',stars:4.3},
+  {id:'sc',name:'Schloss-Cafe',lat:52.5178,lng:13.3995,tag:'Museumsinsel',emoji:'🏛',tip:'Terrasse am Lustgarten.',stars:4.2},
+  {id:'sp',name:'Sphere Restaurant',lat:52.5208,lng:13.4094,tag:'203m Hoehe',emoji:'🌐',tip:'Drehrestaurant im Fernsehturm.',stars:4.1},
+  {id:'ct',name:'Cafe Neuer See',lat:52.5148,lng:13.3610,tag:'Biergarten',emoji:'🍺',tip:'Biergarten am See im Tiergarten.',stars:4.5}
+];
+
+var R_EASY=[[52.51628,13.37766],[52.51641,13.37855],[52.51653,13.37945],[52.51665,13.38034],[52.51695,13.38254],[52.51727,13.38514],[52.51760,13.38757],[52.51793,13.38982],[52.51840,13.39210],[52.51908,13.39260],[52.51975,13.39295],[52.52015,13.39405],[52.51920,13.40090]];
+var R_MEDIUM=[[52.51450,13.35010],[52.51475,13.35675],[52.51501,13.36315],[52.51533,13.36995],[52.51563,13.37522],[52.51628,13.37766],[52.51775,13.37810],[52.51862,13.37618],[52.51880,13.37800],[52.51840,13.38220],[52.51740,13.38790],[52.51895,13.39315],[52.51920,13.40090]];
+
+// ── STATE ─────────────────────────────────────────────────
+var map,FOOD=[],rLayers=[],foodLayers=[],activeRouteKey=null;
+var tourMode=false,tourStops=[],tLayers=[];
+var curPlace=null,curTab=0,speaking=false;
+var showFood=false,ratingThr=3.5,stgOpen=false,langOpen=false;
+var lastCoords=null,loadedBounds=null,moveTimer=null,destMarker=null;
+var sVoice=null,sProg=null,sStart=0,sDur=0;
+var sheetMode=null;
+var isDragging=false,dragStartY=0,dragStartT=0;
+var gpsActive=false,gpsFollow=true,gpsWatchId=null;
+var gpsMarker=null,gpsCircle=null,userLat=null,userLng=null;
+var distTimer=null,simTimer=null,simStep=0,gpsToastTimer=null;
+var navActive=false;
+
+var SIM_PATH=[[52.5163,13.3777],[52.5165,13.3810],[52.5167,13.3850],[52.5169,13.3890],[52.5171,13.3930],[52.5173,13.3970],[52.5176,13.4005],[52.5181,13.4030],[52.5186,13.4060],[52.5192,13.4009]];
+
+// ── HELPERS ───────────────────────────────────────────────
+function rdep(){return Math.floor(2+Math.random()*8);}
+function distM(a1,o1,a2,o2){var R=6371000,p=(a2-a1)*Math.PI/180,q=(o2-o1)*Math.PI/180,a=Math.sin(p/2)*Math.sin(p/2)+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(q/2)*Math.sin(q/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function minDist(lat,lng,coords){var mn=Infinity;for(var i=0;i<coords.length;i++){var d=distM(lat,lng,coords[i][0],coords[i][1]);if(d<mn)mn=d;}return mn;}
+
+// ── TRANSIT DATA ──────────────────────────────────────────
+// Note: rdep() called inside getRoutes() each time, not at parse time
+function mkTransitEasy(){
+  return {
+    label:'Mit Bahn & Bus',desc:'Brandenburger Tor > U5 > Dom',
+    km:0.9,mins:12,elevGain:1,maxGradPct:0.5,spots:2,
+    isTransit:true,elevProfile:[34,34,34,34,34],color:'#34c759',
+    segments:[
+      {type:'walk',color:'#1a73e8',mins:3,label:'Zu Fuss zur Haltestelle',coords:[[52.5163,13.3777],[52.5164,13.3800],[52.5167,13.3840],[52.5168,13.3860]]},
+      {type:'transit',line:'U5',lc:'#7d4f9e',lt:'#fff',dir:'Richtung Honow',mins:4,dep:rdep(),from:'Brandenburger Tor (U5)',to:'Museumsinsel',coords:[[52.5168,13.3860],[52.5174,13.3910],[52.5181,13.3960],[52.5191,13.4000]]},
+      {type:'walk',color:'#1a73e8',mins:2,label:'Zu Fuss zum Dom',coords:[[52.5191,13.4000],[52.5192,13.4009]]}
+    ],
+    transfers:[{lat:52.5168,lng:13.3860,name:'Brandenburger Tor (U5)'},{lat:52.5191,lng:13.4000,name:'Museumsinsel'}]
+  };
+}
+function mkTransitMedium(){
+  return {
+    label:'Mit Bahn & Bus',desc:'Siegessaeule > Bus 100 > U6 > Dom',
+    km:2.1,mins:22,elevGain:2,maxGradPct:0.8,spots:4,
+    isTransit:true,elevProfile:[34,34,34,34,34,34],color:'#34c759',
+    segments:[
+      {type:'walk',color:'#1a73e8',mins:3,label:'Zu Fuss zur Bushaltestelle',coords:[[52.5145,13.3501],[52.5150,13.3550],[52.5155,13.3600]]},
+      {type:'transit',line:'100',lc:'#f5a623',lt:'#000',dir:'Richtung Alexanderplatz',mins:5,dep:rdep(),from:'Grosser Stern',to:'Reichstag',coords:[[52.5155,13.3600],[52.5162,13.3660],[52.5170,13.3720],[52.5178,13.3762]]},
+      {type:'walk',color:'#1a73e8',mins:2,label:'Zu Fuss zur U-Bahn',coords:[[52.5178,13.3762],[52.5182,13.3820],[52.5185,13.3865]]},
+      {type:'transit',line:'U6',lc:'#7d4f9e',lt:'#fff',dir:'Richtung Alt-Mariendorf',mins:6,dep:rdep(),from:'Brandenburger Tor (U6)',to:'Friedrichstrasse',coords:[[52.5185,13.3865],[52.5187,13.3930],[52.5190,13.3975],[52.5192,13.4009]]},
+      {type:'walk',color:'#1a73e8',mins:1,label:'Ankunft Dom',coords:[[52.5192,13.4009]]}
+    ],
+    transfers:[{lat:52.5155,lng:13.3600,name:'Grosser Stern (Bus 100)'},{lat:52.5178,lng:13.3762,name:'Reichstag'},{lat:52.5185,lng:13.3865,name:'Brandenburger Tor (U6)'},{lat:52.5192,lng:13.4009,name:'Friedrichstrasse'}]
+  };
+}
+
+function getRoutes(){
+  var routes={
+    easy:{label:t('re'),color:'#34c759',emoji:'🟢',km:1.8,mins:22,desc:t('red'),coords:R_EASY,elevProfile:[34,34,33,33,33,33,33,34,34,35,35,35,35],elevGain:2,maxGradPct:1.2,spots:2,isTransit:false},
+    medium:{label:t('rm'),color:'#ff9f0a',emoji:'🟡',km:4.1,mins:51,desc:t('rmd'),coords:R_MEDIUM,elevProfile:[34,33,32,32,33,34,34,35,35,36,36,35,35],elevGain:8,maxGradPct:2.4,spots:4,isTransit:false},
+    te:mkTransitEasy(),
+    tm:mkTransitMedium()
+  };
+  Object.keys(routes).forEach(function(k){
+    var r=routes[k];
+    if(r.isTransit){r.diffColor='#34c759';r.diffIcon='🟢';r.diffLbl='Entspannt 🚇';r.bf=true;}
+    else if(r.km>5||r.elevGain>40||r.spots>7){r.diffColor='#ff3b30';r.diffIcon='🔴';r.diffLbl='Herausfordernd';r.bf=false;}
+    else if(r.km>2.5||r.elevGain>15||r.spots>3){r.diffColor='#ff9f0a';r.diffIcon='🟡';r.diffLbl='Aktiv';r.bf=r.maxGradPct<3;}
+    else{r.diffColor='#34c759';r.diffIcon='🟢';r.diffLbl='Entspannt';r.bf=r.maxGradPct<3;}
+  });
+  return routes;
+}
+
+// ── SPARKLINE ─────────────────────────────────────────────
+function sparkline(prof,col){
+  var W=280,H=44,pd=4,mn=Math.min.apply(null,prof),mx=Math.max.apply(null,prof),rng=mx-mn||1;
+  var pts=prof.map(function(v,i){return (pd+i/(prof.length-1)*(W-pd*2)).toFixed(1)+','+(H-pd-(v-mn)/rng*(H-pd*2)).toFixed(1);});
+  var fill='0,'+(H-pd)+' '+pts.join(' ')+' '+(W-pd)+','+(H-pd);
+  return '<div style="margin:10px 0 14px">'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:5px;display:flex;justify-content:space-between"><span>Hoehenprofil</span><span>'+mn.toFixed(0)+' - '+mx.toFixed(0)+' m u.NN</span></div>'
+    +'<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="display:block;border-radius:6px">'
+    +'<rect width="'+W+'" height="'+H+'" fill="rgba(255,255,255,.04)"/>'
+    +'<polygon points="'+fill+'" fill="'+col+'" fill-opacity="0.25"/>'
+    +'<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round"/>'
+    +'<circle cx="'+pts[0].split(',')[0]+'" cy="'+pts[0].split(',')[1]+'" r="3" fill="'+col+'"/>'
+    +'<circle cx="'+pts[pts.length-1].split(',')[0]+'" cy="'+pts[pts.length-1].split(',')[1]+'" r="3" fill="'+col+'"/>'
+    +'</svg></div>';
+}
+
+function statCell(icon,val,lbl,col,last){
+  return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 3px;gap:2px'+(last?'':';border-right:.5px solid rgba(255,255,255,.08)')+'"><span>'+icon+'</span><span style="font-size:11px;font-weight:600;color:'+col+'">'+val+'</span><span style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase">'+lbl+'</span></div>';
+}
+
+// ── INIT ──────────────────────────────────────────────────
+window.addEventListener('load',function(){
+  map=L.map('map',{center:[52.5175,13.389],zoom:14,zoomControl:false,tap:false,doubleClickZoom:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(map);
+  map.on('dragstart',function(){if(gpsActive)gpsFollow=false;});
+
+  // Double-tap to zoom in, two-finger double-tap to zoom out
+  var lastTap=0, lastTapCount=0;
+  document.getElementById('map').addEventListener('touchend',function(e){
+    if(e.target.closest('#sheet')||e.target.closest('#top-bar')||e.target.closest('#bottom-bar')||e.target.closest('#gps-btn'))return;
+    var now=Date.now();
+    if(now-lastTap<300){
+      if(e.touches.length===0&&e.changedTouches.length===1){
+        map.zoomIn(1);
+      } else if(e.changedTouches.length===2){
+        map.zoomOut(1);
+      }
+      lastTap=0;
+    } else {
+      lastTap=now;
+    }
+  },{passive:true});
+  Object.keys(PL).forEach(function(k){mkMarker(PL[k]);});
+  applyUI();buildLangList();initDrag();refreshPOIs();
+  map.on('moveend',function(){clearTimeout(moveTimer);moveTimer=setTimeout(onMoved,700);});
+  if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=initVoice;initVoice();}
+  document.addEventListener('click',outsideClose);
+});
+
+function initVoice(){var cfg=lc(),vs=window.speechSynthesis.getVoices();sVoice=vs.find(function(v){return v.lang.toLowerCase().startsWith(cfg.sl.substring(0,2));})||null;}
+function applyUI(){document.getElementById('si').placeholder=t('sp');document.getElementById('bar-routes-lbl').textContent=t('rt');document.getElementById('bar-tour-lbl').textContent=t('ot');document.getElementById('ldr-txt').textContent=t('ld');document.getElementById('lang-flag-span').textContent=lc().flag;Object.keys(PL).forEach(function(k){var el=document.getElementById('mlb-'+k);if(el)el.textContent=PL[k].name;});}
+
+// ── SHEET DRAG ────────────────────────────────────────────
+function initDrag(){
+  var h=document.getElementById('sheet-handle');
+  function getT(){var st=document.getElementById('sheet').style.transform;if(!st)return window.innerHeight;var m=st.match(/translateY\(([^p]+)px/);return m?parseFloat(m[1]):window.innerHeight;}
+  function snap(){var s=document.getElementById('sheet');s.style.transition='';s.style.transform='';var pct=s.getBoundingClientRect().top/window.innerHeight*100;if(pct>75)closeSheet();else if(pct>45)ss('half');else ss('full');}
+  h.addEventListener('touchstart',function(e){isDragging=true;dragStartY=e.touches[0].clientY;dragStartT=getT();},{passive:true});
+  h.addEventListener('touchmove',function(e){if(!isDragging)return;e.preventDefault();var dy=e.touches[0].clientY-dragStartY;var s=document.getElementById('sheet');s.style.transition='none';s.style.transform='translateY('+Math.max(0,dragStartT+dy)+'px)';},{passive:false});
+  h.addEventListener('touchend',function(){isDragging=false;snap();});
+  h.addEventListener('mousedown',function(e){isDragging=true;dragStartY=e.clientY;dragStartT=getT();document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);});
+  function mm(e){if(!isDragging)return;var dy=e.clientY-dragStartY;var s=document.getElementById('sheet');s.style.transition='none';s.style.transform='translateY('+Math.max(0,dragStartT+dy)+'px)';}
+  function mu(){isDragging=false;snap();document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);}
+}
+function ss(state){var s=document.getElementById('sheet');s.classList.remove('peek','half','full');s.style.transform='';if(state)s.classList.add(state);}
+function openSheet(state){ss(state||'full');}
+function closeSheet(){ss(null);sheetMode=null;stopSpeak();curPlace=null;}
+
+// ── MARKERS ───────────────────────────────────────────────
+function mkMarker(p){
+  var el=document.createElement('div');el.className='mw';
+  el.innerHTML='<div class="mp" id="pin-'+p.id+'" style="background:'+p.color+'">'+p.e+'</div><div class="mlb" id="mlb-'+p.id+'">'+p.name+'</div>';
+  var icon=L.divIcon({html:el,className:'',iconSize:[88,56],iconAnchor:[44,20]});
+  L.marker([p.lat,p.lng],{icon:icon}).addTo(map).on('click',function(){tourMode?addStop(p.id):openPlaceSheet(p.id);});
+}
+
+// ── PLACE SHEET ───────────────────────────────────────────
+function openPlaceSheet(id){
+  var p=PL[id];if(!p)return;
+  curPlace=p;sheetMode='place';stopSpeak();
+  document.getElementById('sh-icon').style.background=p.color;
+  document.getElementById('sh-icon').textContent=p.e;
+  document.getElementById('sh-name').textContent=p.name;
+  document.getElementById('sh-meta').textContent=p.cat[curLang]||p.cat.de;
+  var fh='';
+  p.facts.forEach(function(f){fh+='<div class="fi"><div class="fd" style="background:'+p.color+'"></div><span style="font-size:14px;color:rgba(255,255,255,.85);line-height:1.5">'+f+'</span></div>';});
+  document.getElementById('sheet-body').innerHTML=
+    '<div id="dist-strip" style="background:rgba(26,115,232,.12);border:.5px solid rgba(26,115,232,.3);border-radius:12px;padding:10px 14px;display:none;align-items:center;gap:10px;margin-bottom:14px"></div>'
+    +'<div class="stabs"><button class="stb on" id="stb0" onclick="swTab(0)">'+t('tf')+'</button><button class="stb" id="stb1" onclick="swTab(1)">'+t('td')+'</button><button class="stb" id="stb2" onclick="swTab(2)">'+t('ts')+'</button></div>'
+    +'<div class="stp on" id="stp0">'+fh+'</div>'
+    +'<div class="stp" id="stp1"><p class="dtxt">'+(p.details[curLang]||p.details.de)+'</p></div>'
+    +'<div class="stp" id="stp2"><p class="gtxt">'+(p.geschichte[curLang]||p.geschichte.de)+'</p>'
+    +'<button class="spkb" id="spkb" onclick="toggleSpeak()" style="background:rgba(255,255,255,.09);color:rgba(255,255,255,.75);border:none">'+SI()+' '+t('rs')+'</button>'
+    +'<div class="apw" id="apw"><div class="aph"><div class="apl"><div class="apd"></div>'+t('rd')+'</div><div class="apt" id="apt"></div></div><div class="aptr"><div class="apf" id="apf"></div></div></div>'
+    +'</div>';
+  curTab=0;openSheet('full');
+  map.panTo([p.lat,p.lng],{animate:true,duration:.5});
+  setTimeout(updateDist,100);
+}
+function swTab(i){curTab=i;for(var j=0;j<3;j++){var b=document.getElementById('stb'+j),p=document.getElementById('stp'+j);if(b)b.classList.toggle('on',j===i);if(p)p.classList.toggle('on',j===i);}stopSpeak();}
+
+// ── SPEECH ────────────────────────────────────────────────
+function toggleSpeak(){
+  if(speaking){stopSpeak();return;}
+  if(!curPlace)return;
+  var cfg=lc();
+  var txts=[curPlace.facts.join('. '),curPlace.details[curLang]||curPlace.details.de,curPlace.geschichte[curLang]||curPlace.geschichte.de];
+  var txt=txts[curTab];
+  var u=new SpeechSynthesisUtterance(txt);
+  u.lang=cfg.sl;u.rate=cfg.rate;u.pitch=cfg.pitch;if(sVoice)u.voice=sVoice;
+  sDur=Math.round(txt.split(/\s+/).length/130*60000/cfg.rate);sStart=Date.now();
+  u.onstart=function(){var aw=document.getElementById('apw');if(aw)aw.classList.add('on');tickProg();};
+  u.onend=u.onerror=function(){speaking=false;stopProg();updSpk(false);};
+  window.speechSynthesis.speak(u);speaking=true;updSpk(true);
+}
+function stopSpeak(){window.speechSynthesis.cancel();speaking=false;stopProg();updSpk(false);}
+function stopProg(){clearTimeout(sProg);var aw=document.getElementById('apw');if(aw)aw.classList.remove('on');var f=document.getElementById('apf');if(f)f.style.width='0%';}
+function tickProg(){var f=document.getElementById('apf'),tt=document.getElementById('apt');if(!f||!speaking)return;var el=Date.now()-sStart,pct=Math.min(100,Math.round(el/sDur*100));f.style.width=pct+'%';var rem=Math.max(0,Math.round((sDur-el)/1000)),m=Math.floor(rem/60),s=rem%60;if(tt)tt.textContent=m+':'+(s<10?'0':'')+s;if(pct<100)sProg=setTimeout(tickProg,500);}
+function updSpk(on){var b=document.getElementById('spkb');if(!b)return;b.style.background=on?(curPlace?curPlace.color:'#1a73e8'):'rgba(255,255,255,.09)';b.style.color=on?'#fff':'rgba(255,255,255,.75)';b.innerHTML=SI()+' '+(on?t('ss'):t('rs'));}
+function SI(){return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';}
+
+// ── ROUTES ────────────────────────────────────────────────
+function openRouteSheet(){
+  sheetMode='route';stopSpeak();
+  var R=getRoutes();
+  document.getElementById('sh-icon').style.background='#1a73e8';
+  document.getElementById('sh-icon').textContent='🗺';
+  document.getElementById('sh-name').textContent=t('rt');
+  document.getElementById('sh-meta').textContent='';
+  var body='<div id="dist-strip" style="background:rgba(26,115,232,.12);border:.5px solid rgba(26,115,232,.3);border-radius:12px;padding:10px 14px;display:none;align-items:center;gap:10px;margin-bottom:14px"></div>';
+  body+='<div style="font-size:10px;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px">Fussrouten</div>';
+  body+=routeCard('easy',R.easy)+routeCard('medium',R.medium);
+  body+='<div style="font-size:10px;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin:14px 0 8px">Mit Bahn und Bus</div>';
+  body+=routeCard('te',R.te)+routeCard('tm',R.tm);
+  if(activeRouteKey){
+    var ar=R[activeRouteKey];
+    if(ar&&ar.isTransit){
+      body+='<div style="font-size:10px;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin:14px 0 8px">Naechste Abfahrten</div>';
+      ar.segments.forEach(function(sg){
+        if(sg.type!=='transit')return;
+        body+='<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:12px;padding:11px 13px;margin-bottom:8px">'
+          +'<div style="background:'+sg.lc+';color:'+sg.lt+';font-size:12px;font-weight:800;padding:4px 9px;border-radius:7px;white-space:nowrap;flex-shrink:0">'+sg.line+'</div>'
+          +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+sg.dir+'</div><div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:1px">'+sg.from+' > '+sg.to+'</div></div>'
+          +'<div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:700;color:#34c759">'+sg.dep+' Min.</div><div style="font-size:10px;color:rgba(255,255,255,.4)">ca. '+sg.mins+' Min. Fahrt</div></div>'
+          +'</div>';
+      });
+    }
+    if(ar&&ar.elevProfile)body+=sparkline(ar.elevProfile,ar.color||'#34c759');
+    // START ROUTE button
+    body+='<button onclick="startNavigation()" style="width:100%;padding:15px;border-radius:14px;border:none;background:#1a73e8;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;min-height:54px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px">'
+      +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+      +'Route starten</button>';
+    body+='<button onclick="clearRoute()" style="width:100%;padding:13px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;min-height:52px;margin-top:8px">Route loeschen</button>';
+  }
+  document.getElementById('sheet-body').innerHTML=body;
+  updateFC();setTimeout(updateDist,100);openSheet('full');
+}
+
+function routeCard(k,r){
+  var isA=activeRouteKey===k,col=r.color||'#34c759',kmS=r.km.toFixed(1).replace('.',',');
+  var bfB=r.bf?'<span style="background:rgba(26,115,232,.18);border:1px solid rgba(26,115,232,.35);color:#4da6ff;border-radius:8px;font-size:10px;padding:2px 7px;margin-left:4px;font-weight:600">Barrierefrei</span>':'';
+  var dB='<span style="background:'+r.diffColor+'22;border:1px solid '+r.diffColor+'55;color:'+r.diffColor+';border-radius:8px;font-size:10px;padding:2px 7px;font-weight:600">'+r.diffIcon+' '+r.diffLbl+'</span>';
+  var lp='';
+  if(r.isTransit&&r.segments)r.segments.forEach(function(s){if(s.type==='transit')lp+='<span style="background:'+s.lc+';color:'+s.lt+';font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;margin-right:3px">'+s.line+'</span>';});
+  return '<div style="border-radius:14px;border:'+(isA?'2px solid '+col:'1px solid rgba(255,255,255,.1)')+';background:'+(isA?'rgba(255,255,255,.08)':'rgba(255,255,255,.05)')+';overflow:hidden;margin-bottom:10px;cursor:pointer" onclick="pickRoute(\''+k+'\')">'
+    +'<div style="display:flex;align-items:flex-start;gap:12px;padding:13px">'
+    +'<div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:'+col+'22;border:1.5px solid '+col+'44;flex-shrink:0">'+(r.isTransit?'🚇':(r.emoji||'🗺'))+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:14px;font-weight:600;color:'+(isA?col:'#fff')+'">'+r.label+bfB+'</div>'
+    +(lp?'<div style="margin-top:5px">'+lp+'</div>':'')
+    +'<div style="margin-top:4px">'+dB+'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">'+r.desc+'</div>'
+    +'</div>'
+    +(isA?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>':'')
+    +'</div>'
+    +'<div style="display:flex;border-top:.5px solid rgba(255,255,255,.08)">'
+    +statCell('📏',kmS+' km',t('rl'),col,false)
+    +statCell('🕐',r.mins+' min',t('rw'),col,false)
+    +statCell('📍',r.spots,'Spots',col,false)
+    +statCell('⛰','+'+r.elevGain+'m','Aufstieg',col,true)
+    +'</div></div>';
+}
+
+function pickRoute(k){
+  rLayers.forEach(function(l){map.removeLayer(l);});rLayers=[];clearFood();
+  if(activeRouteKey===k){activeRouteKey=null;openRouteSheet();return;}
+  activeRouteKey=k;
+  var r=getRoutes()[k];
+  if(r.isTransit){
+    r.segments.forEach(function(sg){
+      if(!sg.coords||sg.coords.length<2)return;
+      if(sg.type==='walk'){
+        var wg=L.polyline(sg.coords,{color:'rgba(26,115,232,.2)',weight:14,lineCap:'round'}).addTo(map);
+        var wl=L.polyline(sg.coords,{color:'#1a73e8',weight:4,dashArray:'4,6',lineCap:'round'}).addTo(map);
+        rLayers.push(wg,wl);
+      }else{
+        var tg=L.polyline(sg.coords,{color:sg.lc,weight:20,opacity:.18,lineCap:'round'}).addTo(map);
+        var tl=L.polyline(sg.coords,{color:sg.lc,weight:7,opacity:.96,lineCap:'round'}).addTo(map);
+        rLayers.push(tg,tl);
+      }
+    });
+    r.transfers.forEach(function(tf){
+      var el=document.createElement('div');
+      el.innerHTML='<div style="width:32px;height:32px;border-radius:50%;background:#fff;border:2.5px solid #333;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,.4)">🚉</div>';
+      var ic=L.divIcon({html:el,className:'',iconSize:[32,32],iconAnchor:[16,16]});
+      rLayers.push(L.marker([tf.lat,tf.lng],{icon:ic,zIndexOffset:900}).addTo(map).bindPopup('<div style="padding:8px;color:#fff;font-size:13px">'+tf.name+'</div>'));
+    });
+    var ac=[];r.segments.forEach(function(s){if(s.coords)s.coords.forEach(function(c){ac.push(c);});});
+    if(ac.length>1)try{map.fitBounds(L.latLngBounds(ac),{padding:[80,80]});}catch(e){}
+  }else{
+    var gw=L.polyline(r.coords,{color:r.color,weight:22,opacity:.13,lineCap:'round'}).addTo(map);
+    var gl=L.polyline(r.coords,{color:r.color,weight:6,opacity:.96,lineCap:'round'}).addTo(map);
+    var d0=L.circleMarker(r.coords[0],{radius:8,fillColor:r.color,color:'#fff',weight:3,fillOpacity:1}).addTo(map);
+    var dN=L.circleMarker(r.coords[r.coords.length-1],{radius:8,fillColor:r.color,color:'#fff',weight:3,fillOpacity:1}).addTo(map);
+    rLayers=[gw,gl,d0,dN];
+    checkFood(r.coords);
+    map.fitBounds(gl.getBounds(),{padding:[80,80]});
+  }
+  // Show confirmation sheet instead of full route sheet
+  openConfirmSheet(k, r);
+}
+
+function openConfirmSheet(k, r){
+  sheetMode='confirm';
+  document.getElementById('sh-icon').style.background=r.color||'#34c759';
+  document.getElementById('sh-icon').textContent=r.isTransit?'🚇':(r.emoji||'🗺');
+  document.getElementById('sh-name').textContent=r.label;
+  document.getElementById('sh-meta').textContent=r.desc;
+
+  var col=r.color||'#34c759';
+  var kmS=r.km.toFixed(1).replace('.',',');
+
+  // Line pills for transit
+  var lp='';
+  if(r.isTransit&&r.segments)r.segments.forEach(function(s){if(s.type==='transit')lp+='<span style="background:'+s.lc+';color:'+s.lt+';font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;margin-right:4px">'+s.line+'</span>';});
+
+  // Difficulty + barrier-free
+  var dB='<span style="background:'+r.diffColor+'22;border:1px solid '+r.diffColor+'55;color:'+r.diffColor+';border-radius:8px;font-size:11px;padding:3px 9px;font-weight:600">'+r.diffIcon+' '+r.diffLbl+'</span>';
+  var bfB=r.bf
+    ?'<span style="background:rgba(26,115,232,.18);border:1px solid rgba(26,115,232,.35);color:#4da6ff;border-radius:8px;font-size:11px;padding:3px 9px;margin-left:6px;font-weight:600">♿ Barrierefrei</span>'
+    :'<span style="background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.3);color:#ff6b6b;border-radius:8px;font-size:11px;padding:3px 9px;margin-left:6px;font-weight:600">⚠ Stufen</span>';
+
+  var body=
+    // Stats row
+    '<div style="display:flex;gap:10px;margin-bottom:16px">'
+    +statCell('📏',kmS+' km','Laenge',col,false)
+    +statCell('🕐',r.mins+' min','Gehzeit',col,false)
+    +statCell('📍',r.spots,'Spots',col,false)
+    +statCell('⛰','+'+r.elevGain+'m','Aufstieg',col,true)
+    +'</div>'
+    // Badges
+    +(lp?'<div style="margin-bottom:12px">'+lp+'</div>':'')
+    +'<div style="margin-bottom:16px">'+dB+bfB+'</div>'
+    // Transit departures preview
+    +(r.isTransit?'<div style="margin-bottom:14px">'
+      +r.segments.filter(function(s){return s.type==='transit';}).map(function(s){
+        return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 13px;margin-bottom:7px">'
+          +'<div style="background:'+s.lc+';color:'+s.lt+';font-size:12px;font-weight:800;padding:3px 9px;border-radius:7px;flex-shrink:0">'+s.line+'</div>'
+          +'<div style="flex:1"><div style="font-size:13px;font-weight:500">'+s.dir+'</div><div style="font-size:11px;color:rgba(255,255,255,.4)">'+s.from+'</div></div>'
+          +'<div style="font-size:14px;font-weight:700;color:#34c759;flex-shrink:0">'+s.dep+' Min.</div>'
+          +'</div>';
+      }).join('')
+      +'</div>':'')
+    // Sparkline
+    +(r.elevProfile?sparkline(r.elevProfile,col):'')
+    // START button (prominent)
+    +'<button onclick="startNavigation()" style="width:100%;padding:16px;border-radius:16px;border:none;background:'+col+';color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;min-height:56px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 20px '+col+'55">'
+    +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+    +'Route starten</button>'
+    // Cancel
+    +'<button onclick="clearRoute()" style="width:100%;padding:13px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;min-height:50px;margin-top:8px">Abbrechen</button>';
+
+  document.getElementById('sheet-body').innerHTML=body;
+  openSheet('half');
+}
+
+function clearRoute(){rLayers.forEach(function(l){map.removeLayer(l);});rLayers=[];clearFood();activeRouteKey=null;openRouteSheet();}
+
+function startNavigation(){
+  closeSheet();
+  var R=getRoutes();
+  var r=R[activeRouteKey];if(!r)return;
+  
+  // Hide bottom bar, show nav bar
+  document.getElementById('bottom-bar').style.display='none';
+  var nb=document.getElementById('nav-bar');nb.classList.add('on');
+  
+  // Populate nav bar
+  document.getElementById('nav-eta').textContent=r.mins;
+  document.getElementById('nav-dist').textContent=r.km.toFixed(1).replace('.',',')+' km';
+  var now=new Date();now.setMinutes(now.getMinutes()+r.mins);
+  var hh=now.getHours(),mm=now.getMinutes();
+  document.getElementById('nav-arrive').textContent='Ankunft ~'+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+  
+  // Build step-by-step directions
+  var stepsHtml='';
+  if(r.isTransit&&r.segments){
+    r.segments.forEach(function(sg,i){
+      if(sg.type==='walk'){
+        stepsHtml+='<div class="nav-step"><div class="nav-step-icon'+(i===0?' active':'')+'">🚶</div><div><div class="nav-step-text">'+sg.label+'</div><div class="nav-step-dist">~'+sg.mins+' Min.</div></div></div>';
+      }else{
+        stepsHtml+='<div class="nav-step"><div class="nav-step-icon" style="background:'+sg.lc+'33"><span style="color:'+sg.lc+';font-weight:800;font-size:11px">'+sg.line+'</span></div><div><div class="nav-step-text">'+sg.dir+'</div><div class="nav-step-dist">'+sg.from+' → '+sg.to+' · '+sg.mins+' Min.</div></div></div>';
+      }
+    });
+  }else{
+    // Walking route - generate steps from coordinates
+    stepsHtml+='<div class="nav-step"><div class="nav-step-icon active">🚶</div><div><div class="nav-step-text">Route starten</div><div class="nav-step-dist">'+r.desc+'</div></div></div>';
+    stepsHtml+='<div class="nav-step"><div class="nav-step-icon">📍</div><div><div class="nav-step-text">Entlang der Route gehen</div><div class="nav-step-dist">'+r.km.toFixed(1)+' km · '+r.mins+' Min.</div></div></div>';
+    stepsHtml+='<div class="nav-step"><div class="nav-step-icon">🏁</div><div><div class="nav-step-text">Ziel erreicht</div><div class="nav-step-dist">'+r.spots+' Sehenswuerdigkeiten auf dem Weg</div></div></div>';
+  }
+  document.getElementById('nav-steps').innerHTML=stepsHtml;
+  
+  // Start GPS
+  if(!gpsActive)toggleGPS();
+  
+  // Fit route on map
+  if(r.isTransit){
+    var ac=[];r.segments.forEach(function(s){if(s.coords)s.coords.forEach(function(c){ac.push(c);});});
+    if(ac.length>1)try{map.fitBounds(L.latLngBounds(ac),{padding:[80,180]});}catch(e){}
+  }else if(r.coords){
+    try{map.fitBounds(L.latLngBounds(r.coords),{padding:[80,180]});}catch(e){}
+  }
+  
+  showToast('Navigation gestartet');
+  navActive=true;
+}
+
+function endNavigation(){
+  document.getElementById('nav-bar').classList.remove('on');
+  document.getElementById('bottom-bar').style.display='';
+  rLayers.forEach(function(l){map.removeLayer(l);});rLayers=[];
+  tLayers.forEach(function(l){map.removeLayer(l);});tLayers=[];
+  clearFood();activeRouteKey=null;navActive=false;
+  // Clean tour markers
+  Object.keys(PL).forEach(function(id){var p=document.getElementById('pin-'+id);if(p){p.classList.remove('ta');var n=p.querySelector('.tn');if(n)n.remove();}});
+  tourStops=[];tourMode=false;
+  if(gpsActive)stopGPS();
+  showToast('Navigation beendet');
+}
+
+function showRouteOverview(){
+  document.getElementById('nav-bar').classList.remove('on');
+  document.getElementById('bottom-bar').style.display='';
+  // Show the route on full map
+  var R=getRoutes();var r=R[activeRouteKey];
+  if(r){
+    if(r.isTransit){
+      var ac=[];r.segments.forEach(function(s){if(s.coords)s.coords.forEach(function(c){ac.push(c);});});
+      if(ac.length>1)try{map.fitBounds(L.latLngBounds(ac),{padding:[60,60]});}catch(e){}
+    }else if(r.coords){
+      try{map.fitBounds(L.latLngBounds(r.coords),{padding:[60,60]});}catch(e){}
+    }
+  }
+  openRouteSheet();
+}
+function updateFC(){var R=getRoutes();['easy','medium','te','tm'].forEach(function(k){var el=document.getElementById('fc-'+k);if(el&&R[k]&&R[k].coords){el.textContent=FOOD.filter(function(f){return f.stars>=ratingThr&&minDist(f.lat,f.lng,R[k].coords)<=200;}).length;}});}
+
+// ── FOOD ──────────────────────────────────────────────────
+function checkFood(coords){lastCoords=coords;clearFood();if(!showFood)return;var idx=0;FOOD.forEach(function(f){if(f.stars<ratingThr||minDist(f.lat,f.lng,coords)>200)return;var wrap=document.createElement('div');wrap.style.cssText='opacity:0;transform:scale(.5);transition:opacity .4s,transform .4s cubic-bezier(.34,1.56,.64,1)';var rc=f.stars>=4.5?'#ffd700':f.stars>=4.0?'#34c759':'#fff';wrap.innerHTML='<div class="fp">'+f.emoji+'<div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);background:'+rc+';color:#111;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;white-space:nowrap">'+f.stars+'</div></div>';var ic=L.divIcon({html:wrap,className:'',iconSize:[40,50],iconAnchor:[20,20]});var m=L.marker([f.lat,f.lng],{icon:ic}).addTo(map).on('click',function(){openFoodSheet(f);});foodLayers.push(m);(function(w,n){setTimeout(function(){w.style.opacity='1';w.style.transform='scale(1)';},80+n*70);})(wrap,idx);idx++;});}
+function clearFood(){foodLayers.forEach(function(l){map.removeLayer(l);});foodLayers=[];}
+function openFoodSheet(f){
+  sheetMode='food';stopSpeak();
+  var rc=f.stars>=4.5?'#ffd700':f.stars>=4.0?'#34c759':'#fff';
+  document.getElementById('sh-icon').style.background='#ff6b35';
+  document.getElementById('sh-icon').textContent=f.emoji;
+  document.getElementById('sh-name').textContent=f.name;
+  document.getElementById('sh-meta').textContent=f.tag;
+  document.getElementById('sheet-body').innerHTML='<div style="display:flex;gap:12px;background:rgba(255,255,255,.05);border-radius:13px;padding:13px"><div style="width:44px;height:44px;border-radius:50%;background:#ff6b35;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+f.emoji+'</div><div><div style="font-size:14px;font-weight:600;margin-bottom:4px">'+f.name+'</div><div style="margin-bottom:6px"><span style="background:'+rc+';color:#111;font-size:13px;font-weight:800;padding:2px 9px;border-radius:7px">'+f.stars+'</span></div><div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.5">'+f.tip+'</div></div></div>';
+  openSheet('peek');
+}
+function onMoved(){var b=map.getBounds();if(loadedBounds){var sw=b.getSouthWest(),ne=b.getNorthEast(),ls=loadedBounds.getSouthWest();if(Math.abs(sw.lat-ls.lat)/(ne.lat-sw.lat)<0.3&&Math.abs(sw.lng-ls.lng)/(ne.lng-sw.lng)<0.3)return;}refreshPOIs();}
+function refreshPOIs(){var b=map.getBounds();setLdr(true);setTimeout(function(){var s=b.getSouth(),w=b.getWest(),n=b.getNorth(),e=b.getEast();var fr=MOCK_DB.filter(function(p){return p.lat>=s&&p.lat<=n&&p.lng>=w&&p.lng<=e;});FOOD.length=0;fr.forEach(function(p){FOOD.push(p);});loadedBounds=b;updateFC();if(showFood&&lastCoords)checkFood(lastCoords);setLdr(false);},350);}
+function setLdr(on){document.getElementById('poi-ldr').classList.toggle('on',on);}
+
+// ── SETTINGS & LANGUAGE ───────────────────────────────────
+function toggleStg(){stgOpen=!stgOpen;document.getElementById('stg-pop').classList.toggle('on',stgOpen);document.getElementById('stg-btn').classList.toggle('active',stgOpen);if(stgOpen&&langOpen){langOpen=false;document.getElementById('lang-pop').classList.remove('on');document.getElementById('lang-btn').classList.remove('active');}}
+function setSw(tid,thid,on,col){document.getElementById(tid).style.background=on?col:'rgba(255,255,255,.15)';document.getElementById(thid).style.left=on?'22px':'3px';}
+function toggleRating(){ratingThr=ratingThr>1?1:3.5;setSw('sw-r','sw-rt',ratingThr>1,'#34c759');updateFC();if(showFood&&lastCoords)checkFood(lastCoords);}
+function toggleFood(){showFood=!showFood;setSw('sw-f','sw-ft',showFood,'#ff6b35');if(lastCoords){showFood?checkFood(lastCoords):clearFood();}}
+function buildLangList(){var h='';LANGS.forEach(function(l){h+='<div class="lang-item'+(l.code===curLang?' active':'')+'" onclick="setLang(\''+l.code+'\')"><span style="font-size:16px;margin-right:2px">'+l.flag+'</span><div style="flex:1"><div style="font-size:14px;font-weight:500">'+l.name+'</div></div><svg class="lang-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>';});document.getElementById('lang-list').innerHTML=h;}
+function toggleLang(){langOpen=!langOpen;document.getElementById('lang-pop').classList.toggle('on',langOpen);document.getElementById('lang-btn').classList.toggle('active',langOpen);if(langOpen&&stgOpen){stgOpen=false;document.getElementById('stg-pop').classList.remove('on');document.getElementById('stg-btn').classList.remove('active');}}
+function setLang(code){curLang=code;langOpen=false;document.getElementById('lang-pop').classList.remove('on');document.getElementById('lang-btn').classList.remove('active');buildLangList();applyUI();initVoice();stopSpeak();if(sheetMode==='place'&&curPlace)openPlaceSheet(curPlace.id);else if(sheetMode==='route')openRouteSheet();}
+function outsideClose(e){var sp=document.getElementById('stg-pop'),sb=document.getElementById('stg-btn'),lp=document.getElementById('lang-pop'),lb=document.getElementById('lang-btn'),sr=document.getElementById('sres'),sbr=document.getElementById('sbr');if(stgOpen&&!sp.contains(e.target)&&!sb.contains(e.target)){stgOpen=false;sp.classList.remove('on');sb.classList.remove('active');}if(langOpen&&!lp.contains(e.target)&&!lb.contains(e.target)){langOpen=false;lp.classList.remove('on');lb.classList.remove('active');}if(sr&&!sr.contains(e.target)&&!sbr.contains(e.target))closeSR();}
+
+// ── TOUR ──────────────────────────────────────────────────
+function startTour(){closeSheet();cancelTourState();rLayers.forEach(function(l){map.removeLayer(l);});rLayers=[];clearFood();activeRouteKey=null;tourMode=true;tourStops=[];openTourSheet();}
+function openTourSheet(){
+  sheetMode='tour';
+  document.getElementById('sh-icon').style.background='#bf5af2';
+  document.getElementById('sh-icon').textContent='✏️';
+  document.getElementById('sh-name').textContent='Eigene Tour';
+  document.getElementById('sh-meta').textContent=tourStops.length===0?'Marker antippen ...':tourStops.length===1?'Naechsten waehlen':tourStops.length+' Stopps';
+  var chips='';tourStops.forEach(function(id,i){chips+='<div class="chip"><span style="font-size:11px;font-weight:700;color:#bf5af2">'+(i+1)+'</span><span style="font-size:13px;color:rgba(255,255,255,.8)">'+PL[id].name+'</span></div>';});
+  document.getElementById('sheet-body').innerHTML=(chips||'<div style="font-size:13px;color:rgba(255,255,255,.35);font-style:italic;padding:4px 0">'+t('nosp')+'</div>')
+    +'<div style="display:flex;gap:8px;margin-top:14px">'
+    +'<button onclick="undoStop()" style="flex:1;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;min-height:52px">'+t('undo')+'</button>'
+    +'<button onclick="finishTour()" style="flex:2;padding:14px;border-radius:14px;border:none;font-size:14px;font-weight:600;cursor:'+(tourStops.length>=2?'pointer':'default')+';font-family:inherit;min-height:52px;background:'+(tourStops.length>=2?'#bf5af2':'rgba(191,90,242,.2)')+';color:'+(tourStops.length>=2?'#fff':'rgba(191,90,242,.4)')+'">'+t('fin')+'</button>'
+    +'</div>'
+    +'<button onclick="cancelTourFull()" style="width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;min-height:48px;margin-top:8px">Tour abbrechen</button>';
+  openSheet('half');
+}
+function addStop(id){if(tourStops.indexOf(id)>=0)return;tourStops.push(id);drawTourLine();openTourSheet();Object.keys(PL).forEach(function(k){var pin=document.getElementById('pin-'+k);if(!pin)return;var idx=tourStops.indexOf(k);pin.classList.toggle('ta',idx>=0);var old=pin.querySelector('.tn');if(old)old.remove();if(idx>=0){var d=document.createElement('div');d.className='tn';d.textContent=idx+1;pin.style.position='relative';pin.appendChild(d);}});}
+function undoStop(){if(!tourStops.length)return;var id=tourStops.pop();var pin=document.getElementById('pin-'+id);if(pin){pin.classList.remove('ta');var n=pin.querySelector('.tn');if(n)n.remove();}drawTourLine();openTourSheet();}
+function drawTourLine(){tLayers.forEach(function(l){map.removeLayer(l);});tLayers=[];if(tourStops.length<2)return;var coords=tourStops.map(function(id){return[PL[id].lat,PL[id].lng];});var gw=L.polyline(coords,{color:'rgba(191,90,242,.25)',weight:20,lineCap:'round'}).addTo(map);var gl=L.polyline(coords,{color:'#bf5af2',weight:6,dashArray:'10,6',lineCap:'round'}).addTo(map);tLayers=[gw,gl];}
+function finishTour(){
+  if(tourStops.length<2)return;tourMode=false;
+  tLayers.forEach(function(l){try{l.setStyle({dashArray:null});}catch(e){}});
+  var coords=tourStops.map(function(id){return[PL[id].lat,PL[id].lng];});checkFood(coords);
+  var tk=0,segs=[];
+  for(var i=0;i<tourStops.length-1;i++){var a=PL[tourStops[i]],b=PL[tourStops[i+1]];var km=distM(a.lat,a.lng,b.lat,b.lng)/1000;tk+=km;segs.push(km);}
+  sheetMode='summary';
+  document.getElementById('sh-icon').style.background='#bf5af2';document.getElementById('sh-icon').textContent='✅';
+  document.getElementById('sh-name').textContent=t('sum');document.getElementById('sh-meta').textContent='';
+  var stats='<div style="display:flex;gap:10px;margin-bottom:14px">'
+    +statCell('📍',tourStops.length,t('lbl_stops'),'#bf5af2',false)
+    +statCell('📏',tk.toFixed(1).replace('.',',')+' km',t('lbl_dist'),'#bf5af2',false)
+    +statCell('🕐','~'+Math.round(tk*13)+'min',t('lbl_walk'),'#bf5af2',true)
+    +'</div>';
+  var sl='';tourStops.forEach(function(id,i){sl+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.05);border-radius:11px;margin-bottom:8px"><div style="width:26px;height:26px;border-radius:50%;background:#bf5af2;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+(i+1)+'</div><span style="font-size:14px;color:rgba(255,255,255,.85)">'+PL[id].name+'</span>'+(segs[i]!==undefined?'<span style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.4)">'+segs[i].toFixed(1)+' km</span>':'')+'</div>';});
+  document.getElementById('sheet-body').innerHTML=stats+sl
+    +'<button onclick="startTourNav()" style="width:100%;padding:16px;border-radius:14px;border:none;background:#bf5af2;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;min-height:54px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 20px rgba(191,90,242,.4)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Tour starten</button>'
+    +'<button onclick="startTour()" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid rgba(191,90,242,.4);background:rgba(191,90,242,.12);color:#bf5af2;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:52px;margin-top:8px">'+t('newt')+'</button>'
+    +'<button onclick="cancelTourFull()" style="width:100%;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;min-height:48px;margin-top:8px">Tour abbrechen</button>';
+  if(tLayers[1]){try{map.fitBounds(tLayers[1].getBounds(),{padding:[80,80]});}catch(e){}}openSheet('full');
+}
+function cancelTourState(){tourMode=false;tourStops=[];tLayers.forEach(function(l){map.removeLayer(l);});tLayers=[];clearFood();Object.keys(PL).forEach(function(id){var p=document.getElementById('pin-'+id);if(!p)return;p.classList.remove('ta');var n=p.querySelector('.tn');if(n)n.remove();});}
+function startTourNav(){
+  closeSheet();
+  document.getElementById('bottom-bar').style.display='none';
+  var nb=document.getElementById('nav-bar');nb.classList.add('on');
+  
+  // Calculate tour stats
+  var tk=0;
+  for(var i=0;i<tourStops.length-1;i++){var a=PL[tourStops[i]],b=PL[tourStops[i+1]];tk+=distM(a.lat,a.lng,b.lat,b.lng)/1000;}
+  var mins=Math.round(tk*13);
+  
+  document.getElementById('nav-eta').textContent=mins;
+  document.getElementById('nav-dist').textContent=tk.toFixed(1).replace('.',',')+' km';
+  var now=new Date();now.setMinutes(now.getMinutes()+mins);
+  var hh=now.getHours(),mm=now.getMinutes();
+  document.getElementById('nav-arrive').textContent='Ankunft ~'+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+  
+  // Build stops list
+  var stepsHtml='';
+  tourStops.forEach(function(id,i){
+    stepsHtml+='<div class="nav-step"><div class="nav-step-icon'+(i===0?' active':'')+'"><span style="font-weight:700;font-size:12px">'+(i+1)+'</span></div><div><div class="nav-step-text">'+PL[id].name+'</div>';
+    if(i<tourStops.length-1){var a=PL[tourStops[i]],b=PL[tourStops[i+1]];var d=distM(a.lat,a.lng,b.lat,b.lng);stepsHtml+='<div class="nav-step-dist">'+(d<1000?Math.round(d)+' m':(d/1000).toFixed(1)+' km')+' zum naechsten Stopp</div>';}
+    else stepsHtml+='<div class="nav-step-dist">🏁 Ziel</div>';
+    stepsHtml+='</div></div>';
+  });
+  document.getElementById('nav-steps').innerHTML=stepsHtml;
+  
+  if(!gpsActive)toggleGPS();
+  if(tLayers[1])try{map.fitBounds(tLayers[1].getBounds(),{padding:[80,180]});}catch(e){}
+  navActive=true;
+  showToast('Tour-Navigation gestartet');
+}
+function cancelTourFull(){cancelTourState();closeSheet();showToast('Tour abgebrochen');}
+
+// ── OSRM ROUTING (echte Fusswege) ─────────────────────────
+function drawTourLine(){
+  tLayers.forEach(function(l){map.removeLayer(l);});tLayers=[];
+  if(tourStops.length<2)return;
+  var coords=tourStops.map(function(id){return[PL[id].lat,PL[id].lng];});
+  // Draw straight line immediately as fallback
+  var gw=L.polyline(coords,{color:'rgba(191,90,242,.25)',weight:20,lineCap:'round'}).addTo(map);
+  var gl=L.polyline(coords,{color:'#bf5af2',weight:6,dashArray:'10,6',lineCap:'round'}).addTo(map);
+  tLayers=[gw,gl];
+  // Try OSRM for real walking route
+  var osrmCoords=coords.map(function(c){return c[1]+','+c[0];}).join(';');
+  fetch('https://router.project-osrm.org/route/v1/foot/'+osrmCoords+'?overview=full&geometries=geojson')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.code==='Ok'&&data.routes&&data.routes[0]){
+        var geom=data.routes[0].geometry.coordinates.map(function(c){return[c[1],c[0]];});
+        tLayers.forEach(function(l){map.removeLayer(l);});tLayers=[];
+        var rg=L.polyline(geom,{color:'rgba(191,90,242,.25)',weight:20,lineCap:'round'}).addTo(map);
+        var rl=L.polyline(geom,{color:'#bf5af2',weight:6,dashArray:'10,6',lineCap:'round'}).addTo(map);
+        tLayers=[rg,rl];
+      }
+    }).catch(function(){/* keep straight line fallback */});
+}
+
+// ── OVERPASS API (automatische Sehenswuerdigkeiten) ────────
+var overpassCache={},overpassMarkers=[],lastOverpassCenter=null,overpassLoading=false;
+var OVERPASS_URL='https://overpass-api.de/api/interpreter';
+var WIKI_SUM_URL='https://LANG.wikipedia.org/api/rest_v1/page/summary/';
+
+function wikiLang(){return curLang==='de'?'de':curLang==='fr'?'fr':curLang==='es'?'es':'en';}
+
+function autoLoadOverpass(){
+  var c=map.getCenter();
+  if(lastOverpassCenter&&distM(c.lat,c.lng,lastOverpassCenter.lat,lastOverpassCenter.lng)<600)return;
+  loadOverpassPOIs(c.lat,c.lng);
+}
+
+function loadOverpassPOIs(lat,lng){
+  if(overpassLoading)return;overpassLoading=true;setLdr(true);
+  lastOverpassCenter={lat:lat,lng:lng};
+  var r=Math.min(3000,Math.max(800,Math.round(40000/Math.pow(2,map.getZoom()))));
+  var q='[out:json][timeout:12];(node(around:'+r+','+lat+','+lng+')["tourism"~"attraction|museum|artwork|viewpoint|gallery"];node(around:'+r+','+lat+','+lng+')["historic"~"monument|memorial|castle|ruins"];way(around:'+r+','+lat+','+lng+')["tourism"~"attraction|museum|artwork|viewpoint|gallery"];way(around:'+r+','+lat+','+lng+')["historic"~"monument|memorial|castle|ruins"];);out center 50;';
+  fetch(OVERPASS_URL+'?data='+encodeURIComponent(q))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data.elements)return;
+      var seen={};
+      // Skip places already in PL
+      Object.keys(PL).forEach(function(k){seen[PL[k].name]=true;});
+      data.elements.forEach(function(el){
+        var nm=el.tags&&(el.tags['name:'+curLang]||el.tags.name);if(!nm)return;
+        var plat=el.lat||(el.center&&el.center.lat);
+        var plng=el.lon||(el.center&&el.center.lon);if(!plat||!plng)return;
+        var id='ovp_'+el.id;if(seen[nm]||overpassCache[id])return;seen[nm]=true;
+        var wt=nm;if(el.tags.wikipedia){var wp=el.tags.wikipedia;if(wp.indexOf(':')>0)wt=wp.split(':')[1];}
+        var emoji='📍';
+        if(el.tags.tourism==='museum')emoji='🏛';
+        else if(el.tags.tourism==='artwork')emoji='🎨';
+        else if(el.tags.tourism==='viewpoint')emoji='👁';
+        else if(el.tags.historic==='memorial')emoji='✡';
+        else if(el.tags.historic==='castle')emoji='🏰';
+        else if(el.tags.historic==='monument')emoji='🗿';
+        overpassCache[id]={id:id,name:nm,lat:plat,lng:plng,emoji:emoji,wikiTitle:wt,tags:el.tags};
+        mkOverpassMarker(overpassCache[id]);
+      });
+    })
+    .catch(function(e){console.warn('Overpass:',e);})
+    .finally(function(){overpassLoading=false;setLdr(false);});
+}
+
+function mkOverpassMarker(p){
+  var col='#607d8b';
+  var el=document.createElement('div');el.className='mw';
+  el.innerHTML='<div class="mp" style="background:'+col+';width:34px;height:34px;font-size:15px;border-width:2px">'+p.emoji+'</div><div class="mlb" style="font-size:8px">'+p.name+'</div>';
+  var icon=L.divIcon({html:el,className:'',iconSize:[80,48],iconAnchor:[40,18]});
+  var m=L.marker([p.lat,p.lng],{icon:icon}).addTo(map).on('click',function(){openOverpassSheet(p);});
+  overpassMarkers.push(m);
+}
+
+function openOverpassSheet(poi){
+  sheetMode='overpass';stopSpeak();
+  document.getElementById('sh-icon').style.background='#607d8b';
+  document.getElementById('sh-icon').textContent=poi.emoji;
+  document.getElementById('sh-name').textContent=poi.name;
+  document.getElementById('sh-meta').textContent=(poi.tags&&(poi.tags.tourism||poi.tags.historic))||'';
+  // Show loading shimmer
+  document.getElementById('sheet-body').innerHTML='<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:16px;margin-bottom:12px"><div style="width:60%;height:14px;background:rgba(255,255,255,.08);border-radius:6px;margin-bottom:10px;animation:shimmer 1.5s infinite"></div><div style="width:100%;height:12px;background:rgba(255,255,255,.06);border-radius:6px;margin-bottom:8px;animation:shimmer 1.5s infinite"></div><div style="width:85%;height:12px;background:rgba(255,255,255,.06);border-radius:6px;animation:shimmer 1.5s infinite"></div></div><style>@keyframes shimmer{0%,100%{opacity:.5}50%{opacity:1}}</style>';
+  openSheet('half');map.panTo([poi.lat,poi.lng],{animate:true,duration:.5});
+  // Fetch Wikipedia
+  var title=poi.wikiTitle||poi.name;
+  var url=WIKI_SUM_URL.replace('LANG',wikiLang())+encodeURIComponent(title);
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(d.type==='standard'||d.type==='disambiguation'){renderWikiSheet(poi,d);}
+    else{
+      // Fallback search
+      fetch('https://'+wikiLang()+'.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=1&search='+encodeURIComponent(poi.name))
+        .then(function(r){return r.json();}).then(function(sd){
+          if(sd[1]&&sd[1][0])return fetch(WIKI_SUM_URL.replace('LANG',wikiLang())+encodeURIComponent(sd[1][0])).then(function(r){return r.json();});
+          throw'none';
+        }).then(function(d2){renderWikiSheet(poi,d2);}).catch(function(){renderWikiSheet(poi,null);});
+    }
+  }).catch(function(){renderWikiSheet(poi,null);});
+}
+
+function renderWikiSheet(poi,wiki){
+  var h='';
+  if(wiki&&wiki.thumbnail)h+='<img src="'+wiki.thumbnail.source+'" style="width:100%;border-radius:12px;margin-bottom:14px;max-height:200px;object-fit:cover" onerror="this.style.display=\'none\'"/>';
+  if(wiki&&wiki.description)h+='<div style="display:inline-block;background:rgba(255,255,255,.07);border-radius:8px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:12px">'+wiki.description+'</div>';
+  // Tags from OSM
+  var tg=poi.tags||{};
+  if(tg.opening_hours||tg.wheelchair||tg.fee){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+    if(tg.opening_hours)h+='<span style="background:rgba(255,255,255,.06);border-radius:8px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.5)">🕐 '+tg.opening_hours+'</span>';
+    if(tg.fee)h+='<span style="background:rgba(255,255,255,.06);border-radius:8px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.5)">'+(tg.fee==='no'?'🆓 Kostenlos':'💰 '+tg.fee)+'</span>';
+    if(tg.wheelchair)h+='<span style="background:rgba(255,255,255,.06);border-radius:8px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.5)">'+(tg.wheelchair==='yes'?'♿ Barrierefrei':'⚠ Nicht barrierefrei')+'</span>';
+    h+='</div>';
+  }
+  h+='<p style="font-size:14px;line-height:1.8;color:rgba(255,255,255,.72);margin-bottom:14px">'+(wiki&&wiki.extract?wiki.extract:'Keine Wikipedia-Informationen verfuegbar.')+'</p>';
+  if(wiki&&wiki.content_urls)h+='<div style="font-size:11px;color:rgba(255,255,255,.3);border-top:.5px solid rgba(255,255,255,.06);padding-top:10px">Quelle: Wikipedia · <a href="'+wiki.content_urls.desktop.page+'" target="_blank" style="color:rgba(255,255,255,.4);text-decoration:none">Artikel lesen ↗</a></div>';
+  else h+='<div style="font-size:11px;color:rgba(255,255,255,.3)">Quelle: Wikipedia</div>';
+  document.getElementById('sheet-body').innerHTML=h;
+}
+
+// Hook Overpass loading into map movement
+var overpassMoveTimer=null;
+(function(){
+  var origInit=window.addEventListener;
+  var checkOverpass=function(){
+    if(map){
+      map.on('moveend',function(){clearTimeout(overpassMoveTimer);overpassMoveTimer=setTimeout(autoLoadOverpass,1200);});
+      setTimeout(function(){loadOverpassPOIs(map.getCenter().lat,map.getCenter().lng);},800);
+    }
+  };
+  // Wait until map is ready
+  var waitMap=setInterval(function(){if(typeof map!=='undefined'&&map){clearInterval(waitMap);checkOverpass();}},500);
+})();
+
+// ── SEARCH ────────────────────────────────────────────────
+var SDB=[{name:'Brandenburger Tor',sub:'Berlin',lat:52.5163,lng:13.3777,emoji:'🏛'},{name:'Berliner Dom',sub:'Berlin',lat:52.5192,lng:13.4009,emoji:'⛪'},{name:'Fernsehturm',sub:'Berlin',lat:52.5208,lng:13.4094,emoji:'📡'},{name:'Reichstag',sub:'Berlin',lat:52.5186,lng:13.3762,emoji:'🏛'},{name:'Siegessaeule',sub:'Berlin',lat:52.5145,lng:13.3501,emoji:'🏆'},{name:'Hamburg',sub:'Deutschland',lat:53.5753,lng:10.0153,emoji:'🚢'},{name:'Muenchen',sub:'Deutschland',lat:48.1351,lng:11.5820,emoji:'🍺'},{name:'Paris',sub:'Frankreich',lat:48.8566,lng:2.3522,emoji:'🗼'},{name:'London',sub:'England',lat:51.5074,lng:-0.1278,emoji:'🎡'},{name:'Wien',sub:'Oesterreich',lat:48.2082,lng:16.3738,emoji:'🎻'},{name:'Amsterdam',sub:'Niederlande',lat:52.3676,lng:4.9041,emoji:'🚲'},{name:'New York',sub:'USA',lat:40.7128,lng:-74.0060,emoji:'🗽'}];
+function onSI(){var q=document.getElementById('si').value.trim();document.getElementById('sc-btn').classList.toggle('on',q.length>0);if(q.length<2){closeSR();return;}var r=lsrch(q);if(r.length)renderSR(r);else showSRE();}
+function onSK(e){if(e.key==='Enter'){var q=document.getElementById('si').value.trim();if(q){var r=lsrch(q);if(r.length)goTo(r[0]);else showSRE();}}if(e.key==='Escape')clearSrch();}
+function lsrch(q){var ql=q.toLowerCase(),all=[];SDB.forEach(function(p){var nl=p.name.toLowerCase();if(nl===ql)all.unshift(p);else if(nl.startsWith(ql)||nl.indexOf(ql)>0||p.sub.toLowerCase().indexOf(ql)>=0)all.push(p);});return all.slice(0,6);}
+function clearSrch(){document.getElementById('si').value='';document.getElementById('sc-btn').classList.remove('on');closeSR();}
+function closeSR(){var el=document.getElementById('sres');el.classList.remove('on');el.innerHTML='';}
+function showSRE(){document.getElementById('sres').innerHTML='<div style="padding:16px;text-align:center;font-size:14px;color:rgba(255,255,255,.4)">'+t('nr')+'</div>';document.getElementById('sres').classList.add('on');}
+function renderSR(items){var h=items.map(function(item){return'<div class="sri"><div class="sri-pin">'+item.emoji+'</div><div><div style="font-size:14px;font-weight:500;color:#fff">'+item.name+'</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">'+item.sub+'</div></div></div>';}).join('');var el=document.getElementById('sres');el.innerHTML=h;el.querySelectorAll('.sri').forEach(function(n,i){n.onclick=function(){goTo(items[i]);};});el.classList.add('on');}
+function goTo(item){document.getElementById('si').value=item.name;closeSR();closeSheet();cancelTourState();rLayers.forEach(function(l){map.removeLayer(l);});rLayers=[];clearFood();if(destMarker){map.removeLayer(destMarker);destMarker=null;}map.flyTo([item.lat,item.lng],15,{animate:true,duration:1.4});var el=document.createElement('div');el.style.cssText='position:relative;width:20px;height:20px';el.innerHTML='<div class="dest-pulse"></div><div class="dest-dot"></div>';var ic=L.divIcon({html:el,className:'',iconSize:[20,20],iconAnchor:[10,10]});destMarker=L.marker([item.lat,item.lng],{icon:ic}).addTo(map).bindPopup('<div style="padding:10px 4px;min-width:130px"><div style="font-size:14px;font-weight:600;color:#fff">'+item.emoji+' '+item.name+'</div></div>').openPopup();map.once('moveend',function(){refreshPOIs();});}
+
+// ── GPS (always last) ─────────────────────────────────────
+function toggleGPS(){if(gpsActive){stopGPS();return;}if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){startRealGPS(pos);},function(){startSim();},{enableHighAccuracy:true,timeout:3000,maximumAge:0});}else{startSim();}}
+function startRealGPS(pos){gpsActive=true;document.getElementById('gps-btn').classList.add('active');placeDot(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);gpsWatchId=navigator.geolocation.watchPosition(function(p){placeDot(p.coords.latitude,p.coords.longitude,p.coords.accuracy);},function(){},{enableHighAccuracy:true,maximumAge:2000,timeout:10000});distTimer=setInterval(updateDist,3000);}
+function startSim(){gpsActive=true;simStep=0;document.getElementById('gps-btn').classList.add('active');showToast('Simulation: GPS entlang der Route');tickSim();distTimer=setInterval(updateDist,2000);}
+function tickSim(){if(!gpsActive)return;var pt=SIM_PATH[simStep%SIM_PATH.length];placeDot(pt[0],pt[1],15);simStep++;simTimer=setTimeout(tickSim,3000);}
+function placeDot(lat,lng,acc){userLat=lat;userLng=lng;if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null;}if(gpsCircle){map.removeLayer(gpsCircle);gpsCircle=null;}gpsCircle=L.circle([lat,lng],{radius:acc||15,color:'#1a73e8',fillColor:'#1a73e8',fillOpacity:.12,weight:1.5,opacity:.4}).addTo(map);var el=document.createElement('div');el.style.cssText='position:relative;width:20px;height:20px';el.innerHTML='<div style="position:absolute;top:-10px;left:-10px;width:40px;height:40px;border-radius:50%;background:rgba(26,115,232,.2);animation:pulse 2s ease-out infinite"></div><div style="position:relative;z-index:2;width:20px;height:20px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 2px 12px rgba(26,115,232,.7)"></div>';var ic=L.divIcon({html:el,className:'',iconSize:[20,20],iconAnchor:[10,10]});gpsMarker=L.marker([lat,lng],{icon:ic,zIndexOffset:1000}).addTo(map);if(gpsFollow)map.panTo([lat,lng],{animate:true,duration:.5});updateDist();}
+function stopGPS(){gpsActive=false;gpsFollow=true;document.getElementById('gps-btn').classList.remove('active');if(gpsWatchId!=null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}clearTimeout(simTimer);simTimer=null;simStep=0;if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null;}if(gpsCircle){map.removeLayer(gpsCircle);gpsCircle=null;}clearInterval(distTimer);userLat=null;userLng=null;var ds=document.getElementById('dist-strip');if(ds)ds.style.display='none';}
+function showToast(msg){var el=document.getElementById('gps-toast');document.getElementById('gps-toast-msg').textContent=msg;el.classList.add('on');clearTimeout(gpsToastTimer);gpsToastTimer=setTimeout(function(){el.classList.remove('on');},4500);}
+function updateDist(){
+  if(!userLat||!userLng)return;
+  var strip=document.getElementById('dist-strip');if(!strip)return;
+  var targets=[],R=getRoutes();
+  if(activeRouteKey&&R[activeRouteKey]){
+    var rc=R[activeRouteKey];
+    if(rc.isTransit&&rc.segments)rc.segments.forEach(function(s){if(s.coords)s.coords.forEach(function(c){targets.push({lat:c[0],lng:c[1],label:null});});});
+    else if(rc.coords)rc.coords.forEach(function(c){targets.push({lat:c[0],lng:c[1],label:null});});
+  }
+  Object.keys(PL).forEach(function(k){targets.push({lat:PL[k].lat,lng:PL[k].lng,label:PL[k].name});});
+  var best=null,bd=Infinity;
+  targets.forEach(function(tg){var d=distM(userLat,userLng,tg.lat,tg.lng);if(d<bd){bd=d;best=tg;}});
+  if(!best||bd>2000){strip.style.display='none';return;}
+  var dt=bd<1000?Math.round(bd)+' m':(bd/1000).toFixed(1)+' km';
+  var mn=Math.max(1,Math.round(bd/80));
+  var lbl=best.label?' > '+best.label:'';
+  var acc=gpsCircle?Math.round(gpsCircle.getRadius())+'m':'?';
+  strip.style.display='flex';
+  strip.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4da6ff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg><div><div style="font-size:13px;font-weight:600;color:#4da6ff">Noch '+dt+lbl+'</div><div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">~'+mn+' Min. | GPS +-'+acc+'</div></div>';
+}
+</script>
+</body>
+</html>
